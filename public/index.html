@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoucherWave — Cafe WiFi Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F5F0E8;
+    --espresso: #1A1208;
+    --roast: #3D2B1A;
+    --caramel: #C8852A;
+    --foam: #EDE8DF;
+    --steam: #D4C9B8;
+    --green: #2D6A4F;
+    --red: #9B2335;
+    --mono: 'DM Mono', monospace;
+    --serif: 'Fraunces', serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--cream);
+    color: var(--espresso);
+    font-family: var(--mono);
+    min-height: 100vh;
+  }
+
+  /* ── Login Screen ── */
+  #login-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--espresso);
+    background-image: radial-gradient(ellipse at 30% 50%, #3D2B1A 0%, #1A1208 70%);
+  }
+
+  .login-box {
+    width: 100%;
+    max-width: 380px;
+    padding: 48px 40px;
+    text-align: center;
+  }
+
+  .login-logo {
+    font-family: var(--serif);
+    font-size: 36px;
+    font-weight: 600;
+    color: var(--cream);
+    margin-bottom: 4px;
+  }
+
+  .login-sub {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--steam);
+    margin-bottom: 40px;
+    opacity: 0.6;
+  }
+
+  .login-box input {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    color: var(--cream);
+    font-family: var(--mono);
+    font-size: 14px;
+    letter-spacing: 2px;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 12px;
+  }
+
+  .login-box input:focus { border-color: var(--caramel); }
+  .login-box input::placeholder { color: rgba(255,255,255,0.3); letter-spacing: 1px; }
+
+  .login-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--caramel);
+    color: var(--espresso);
+    border: none;
+    border-radius: 8px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .login-btn:hover { background: #D4952E; transform: translateY(-1px); }
+  .login-err { color: #f87171; font-size: 12px; margin-top: 10px; min-height: 18px; }
+
+  /* ── App Shell ── */
+  #app { display: none; min-height: 100vh; }
+
+  header {
+    background: var(--espresso);
+    padding: 0 32px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .header-logo {
+    font-family: var(--serif);
+    font-size: 22px;
+    color: var(--cream);
+  }
+
+  .header-logo span { color: var(--caramel); }
+
+  .logout-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--steam);
+    background: none;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+
+  .logout-btn:hover { opacity: 1; }
+
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ── Router Selector ── */
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--roast);
+    opacity: 0.5;
+    margin-bottom: 10px;
+  }
+
+  .router-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 32px;
+  }
+
+  .router-tab {
+    padding: 10px 18px;
+    border: 1.5px solid var(--steam);
+    border-radius: 6px;
+    background: transparent;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--roast);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .router-tab:hover { border-color: var(--caramel); color: var(--espresso); }
+
+  .router-tab.active {
+    background: var(--espresso);
+    border-color: var(--espresso);
+    color: var(--cream);
+  }
+
+  .router-tab.loading { opacity: 0.5; cursor: wait; }
+
+  /* ── Status Bar ── */
+  .status-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .stat-card {
+    background: var(--foam);
+    border: 1px solid var(--steam);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .stat-val {
+    font-family: var(--serif);
+    font-size: 40px;
+    font-weight: 300;
+    line-height: 1;
+    margin-bottom: 6px;
+    color: var(--espresso);
+  }
+
+  .stat-val.green { color: var(--green); }
+  .stat-val.amber { color: var(--caramel); }
+  .stat-val.red { color: var(--red); }
+
+  .stat-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--roast);
+    opacity: 0.5;
+  }
+
+  .stat-card.loading .stat-val { opacity: 0.2; }
+
+  /* ── Generate Panel ── */
+  .panel {
+    background: var(--foam);
+    border: 1px solid var(--steam);
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 16px;
+  }
+
+  .panel-title {
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .field label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--roast);
+    opacity: 0.6;
+    margin-bottom: 6px;
+  }
+
+  .field input, .field select {
+    width: 100%;
+    padding: 11px 14px;
+    background: var(--cream);
+    border: 1.5px solid var(--steam);
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--espresso);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .field input:focus, .field select:focus { border-color: var(--caramel); }
+
+  .btn-row { display: flex; gap: 10px; margin-top: 4px; }
+
+  .btn {
+    flex: 1;
+    padding: 13px;
+    border: none;
+    border-radius: 7px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--espresso);
+    color: var(--cream);
+  }
+
+  .btn-primary:hover { background: var(--roast); transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--espresso);
+    border: 1.5px solid var(--steam);
+  }
+
+  .btn-secondary:hover { border-color: var(--espresso); }
+  .btn-secondary:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* ── Generated Codes Preview ── */
+  .codes-preview {
+    margin-top: 20px;
+    display: none;
+  }
+
+  .codes-preview.visible { display: block; }
+
+  .codes-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .codes-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .code-pill {
+    background: var(--cream);
+    border: 1px solid var(--steam);
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--roast);
+  }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--espresso);
+    color: var(--cream);
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 999;
+    white-space: nowrap;
+  }
+
+  #toast.show { transform: translateX(-50%) translateY(0); }
+  #toast.success { background: var(--green); }
+  #toast.error { background: var(--red); }
+
+  /* ── Error state ── */
+  .status-error {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--red);
+    font-size: 12px;
+    padding: 16px;
+  }
+
+  @media (max-width: 520px) {
+    header { padding: 0 16px; }
+    main { padding: 24px 16px 60px; }
+    .field-row { grid-template-columns: 1fr; }
+    .status-bar { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .stat-val { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">VoucherWave</div>
+    <div class="login-sub">Cafe WiFi Manager</div>
+    <input type="password" id="pw-input" placeholder="Admin password" 
+           onkeydown="if(event.key==='Enter') doLogin()">
+    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app">
+  <header>
+    <div class="header-logo">Voucher<span>Wave</span></div>
+    <button class="logout-btn" onclick="logout()">Sign Out</button>
+  </header>
+
+  <main>
+    <div class="section-label">Select Branch</div>
+    <div class="router-tabs" id="router-tabs">
+      <div class="router-tab loading">Loading...</div>
+    </div>
+
+    <div class="status-bar" id="status-bar">
+      <div class="stat-card loading">
+        <div class="stat-val green" id="stat-unused">—</div>
+        <div class="stat-label">Unused</div>
+      </div>
+      <div class="stat-card loading">
+        <div class="stat-val red" id="stat-used">—</div>
+        <div class="stat-label">Used</div>
+      </div>
+      <div class="stat-card loading">
+        <div class="stat-val amber" id="stat-active">—</div>
+        <div class="stat-label">Active Now</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Generate Vouchers</div>
+      <div class="field-row">
+        <div class="field">
+          <label>Number of Vouchers</label>
+          <input type="number" id="gen-count" value="10" min="1" max="100">
+        </div>
+        <div class="field">
+          <label>Code Prefix</label>
+          <input type="text" id="gen-prefix" value="CAFE" maxlength="8"
+                 style="text-transform:uppercase"
+                 oninput="this.value=this.value.toUpperCase()">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-generate" onclick="generateVouchers()">
+          ⚡ Generate &amp; Push
+        </button>
+        <button class="btn btn-secondary" id="btn-print" disabled onclick="printSheet()">
+          🖨 Print Sheet
+        </button>
+      </div>
+
+      <div class="codes-preview" id="codes-preview">
+        <div class="codes-header">
+          <span class="section-label" style="margin:0">Generated codes</span>
+        </div>
+        <div class="codes-grid" id="codes-grid"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  let token = sessionStorage.getItem('wv_token') || '';
+  let selectedRouter = null;
+  let lastCodes = [];
+
+  // ── Auth ────────────────────────────────────────────────────────
+  function doLogin() {
+    const pw = document.getElementById('pw-input').value;
+    if (!pw) return;
+    token = pw;
+    // Test token with API call
+    fetch('/api/routers', { headers: { 'x-admin-token': token } })
+      .then(r => {
+        if (r.status === 401) throw new Error('Wrong password');
+        return r.json();
+      })
+      .then(routers => {
+        sessionStorage.setItem('wv_token', token);
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        renderRouterTabs(routers);
+        if (routers.length > 0) selectRouter(routers[0].id);
+      })
+      .catch(err => {
+        document.getElementById('login-err').textContent = err.message;
+        token = '';
+      });
+  }
+
+  function logout() {
+    sessionStorage.removeItem('wv_token');
+    location.reload();
+  }
+
+  // Auto-login if token saved
+  if (token) {
+    document.getElementById('pw-input').value = '••••••••';
+    doLogin();
+  }
+
+  // ── Router Tabs ─────────────────────────────────────────────────
+  function renderRouterTabs(routers) {
+    const el = document.getElementById('router-tabs');
+    if (!routers.length) {
+      el.innerHTML = '<div style="font-size:12px;color:#999">No routers configured. Check your .env ROUTERS setting.</div>';
+      return;
+    }
+    el.innerHTML = routers.map(r =>
+      `<button class="router-tab" onclick="selectRouter('${r.id}')" id="tab-${r.id}">${r.name}</button>`
+    ).join('');
+  }
+
+  function selectRouter(id) {
+    selectedRouter = id;
+    document.querySelectorAll('.router-tab').forEach(t => t.classList.remove('active'));
+    const tab = document.getElementById(`tab-${id}`);
+    if (tab) tab.classList.add('active');
+    loadStatus(id);
+    // Reset codes preview
+    lastCodes = [];
+    document.getElementById('codes-preview').classList.remove('visible');
+    document.getElementById('btn-print').disabled = true;
+  }
+
+  // ── Status ──────────────────────────────────────────────────────
+  async function loadStatus(routerId) {
+    document.querySelectorAll('.stat-card').forEach(c => c.classList.add('loading'));
+    ['stat-unused','stat-used','stat-active'].forEach(id => {
+      document.getElementById(id).textContent = '—';
+    });
+
+    try {
+      const res = await fetch(`/api/routers/${routerId}/status`, {
+        headers: { 'x-admin-token': token }
+      });
+      if (!res.ok) throw new Error('Failed');
+      const s = await res.json();
+      document.getElementById('stat-unused').textContent = s.unused ?? '?';
+      document.getElementById('stat-used').textContent = s.used ?? '?';
+      document.getElementById('stat-active').textContent = s.active ?? '?';
+    } catch {
+      document.getElementById('stat-unused').textContent = '!';
+      document.getElementById('stat-used').textContent = '!';
+      document.getElementById('stat-active').textContent = '!';
+      showToast('Could not reach router', 'error');
+    } finally {
+      document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('loading'));
+    }
+  }
+
+  // ── Generate ────────────────────────────────────────────────────
+  async function generateVouchers() {
+    if (!selectedRouter) return showToast('Select a branch first', 'error');
+    const count = parseInt(document.getElementById('gen-count').value) || 10;
+    const prefix = document.getElementById('gen-prefix').value.trim() || 'CAFE';
+
+    const btn = document.getElementById('btn-generate');
+    btn.disabled = true;
+    btn.textContent = 'Pushing to router...';
+
+    try {
+      const res = await fetch('/api/vouchers/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+        body: JSON.stringify({ routerId: selectedRouter, count, prefix })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+
+      lastCodes = data.codes;
+      renderCodePreview(data.codes);
+      document.getElementById('btn-print').disabled = false;
+      showToast(`✓ ${data.count} vouchers pushed`, 'success');
+      loadStatus(selectedRouter);
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '⚡ Generate & Push';
+    }
+  }
+
+  function renderCodePreview(codes) {
+    const grid = document.getElementById('codes-grid');
+    grid.innerHTML = codes.map(c => `<div class="code-pill">${c}</div>`).join('');
+    document.getElementById('codes-preview').classList.add('visible');
+  }
+
+  // ── Print ────────────────────────────────────────────────────────
+  async function printSheet() {
+    if (!lastCodes.length) return;
+    const cafeName = document.querySelector('.router-tab.active')?.textContent || 'Cafe WiFi';
+
+    try {
+      const res = await fetch('/api/vouchers/print-sheet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+        body: JSON.stringify({ codes: lastCodes, cafeName, duration: '2 Hours' })
+      });
+      const html = await res.text();
+      const win = window.open('', '_blank');
+      win.document.write(html);
+      win.document.close();
+    } catch (err) {
+      showToast('Print failed: ' + err.message, 'error');
+    }
+  }
+
+  // ── Toast ────────────────────────────────────────────────────────
+  function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = type ? `show ${type}` : 'show';
+    setTimeout(() => t.className = type || '', 3000);
+  }
+</script>
+</body>
+</html>
