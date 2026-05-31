@@ -1,0 +1,77 @@
+#!/bin/sh
+# /www/cgi-bin/redeem
+# Called by customer portal when they submit a voucher code.
+# Returns: OK | INVALID | USED | ERROR
+
+echo "Content-Type: text/plain"
+echo "Cache-Control: no-cache"
+echo ""
+
+VOUCHERS_FILE="/etc/wifi_vouchers"
+SESSIONS_DIR="/tmp/wifi_sessions"
+
+# ── Parse voucher code from query string ─────────────────────────
+CODE=$(echo "$QUERY_STRING" | sed 's/.*code=\([^&]*\).*/\1/' \
+       | sed 's/%2B/+/g; s/%20/ /g; s/%2D/-/g' \
+       | tr '[:lower:]' '[:upper:]')
+
+if [ -z "$CODE" ]; then
+    echo "INVALID"
+    exit 0
+fi
+
+# ── Get client MAC from ARP table ────────────────────────────────
+CLIENT_IP="$REMOTE_ADDR"
+CLIENT_MAC=$(arp -n "$CLIENT_IP" 2>/dev/null \
+             | awk '/ether/{print $3}' \
+             | head -1)
+
+# Fallback: scan full ARP table for IP
+if [ -z "$CLIENT_MAC" ]; then
+    CLIENT_MAC=$(cat /proc/net/arp \
+                 | awk -v ip="$CLIENT_IP" '$1==ip{print $4}' \
+                 | head -1)
+fi
+
+if [ -z "$CLIENT_MAC" ] || [ "$CLIENT_MAC" = "00:00:00:00:00:00" ]; then
+    echo "ERROR"
+    exit 0
+fi
+
+# ── Check voucher state ──────────────────────────────────────────
+if ! [ -f "$VOUCHERS_FILE" ]; then
+    echo "INVALID"
+    exit 0
+fi
+
+if grep -q "^${CODE}:used$" "$VOUCHERS_FILE" 2>/dev/null; then
+    echo "USED"
+    exit 0
+fi
+
+if ! grep -q "^${CODE}:unused$" "$VOUCHERS_FILE" 2>/dev/null; then
+    echo "INVALID"
+    exit 0
+fi
+
+# ── Check if this MAC already has an active session ──────────────
+if [ -f "${SESSIONS_DIR}/${CLIENT_MAC}" ]; then
+    # Already connected — just return OK (idempotent)
+    echo "OK"
+    exit 0
+fi
+
+# ── All good — activate ──────────────────────────────────────────
+mkdir -p "$SESSIONS_DIR"
+
+# Mark voucher used (atomic-ish with sed)
+sed -i "s/^${CODE}:unused$/${CODE}:used/" "$VOUCHERS_FILE"
+
+# Record session start time
+echo "$(date +%s)" > "${SESSIONS_DIR}/${CLIENT_MAC}"
+
+# Whitelist this MAC in iptables (insert before the default DROP rule)
+iptables -I FORWARD -m mac --mac-source "$CLIENT_MAC" -j ACCEPT 2>/dev/null
+
+echo "OK"
+exit 0
